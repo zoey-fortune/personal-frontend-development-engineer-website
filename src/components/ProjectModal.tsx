@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Github, ExternalLink, Calendar, User, Sparkles, Cpu, AlertTriangle, Trophy } from 'lucide-react';
 import type { Project } from '@/data/profile';
@@ -8,42 +8,69 @@ interface ProjectModalProps {
   onClose: () => void;
 }
 
+const backdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 20 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: 20,
+    transition: { duration: 0.2, ease: 'easeIn' },
+  },
+};
+
 export default function ProjectModal({ project, onClose }: ProjectModalProps) {
+  const handleEsc = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    },
+    [onClose]
+  );
+
   useEffect(() => {
     if (!project) return;
 
     document.body.style.overflow = 'hidden';
-
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
     window.addEventListener('keydown', handleEsc);
 
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleEsc);
     };
-  }, [project, onClose]);
+  }, [project, handleEsc]);
 
   return (
     <AnimatePresence>
       {project && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            variants={backdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/70"
+            style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
             onClick={onClose}
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 30 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="relative glass-card w-full max-w-3xl max-h-[85vh] overflow-y-auto z-10 p-8 md:p-10 border-glass-border"
+            style={{ willChange: 'transform' }}
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink" />
 
@@ -107,16 +134,13 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                 </h3>
                 <ul className="grid md:grid-cols-2 gap-2">
                   {project.features.map((feat, i) => (
-                    <motion.li
+                    <li
                       key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + i * 0.05 }}
                       className="flex items-start gap-2 font-noto-sc text-sm text-slate-400"
                     >
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neon-cyan/60 shrink-0" />
                       {feat}
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -144,16 +168,13 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                 </h3>
                 <ul className="space-y-2">
                   {project.challenges.map((challenge, i) => (
-                    <motion.li
+                    <li
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 + i * 0.08 }}
                       className="flex items-start gap-2 font-noto-sc text-sm text-slate-400"
                     >
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neon-pink/60 shrink-0" />
                       {challenge}
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -167,16 +188,13 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                 </h3>
                 <ul className="space-y-2">
                   {project.results.map((result, i) => (
-                    <motion.li
+                    <li
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + i * 0.08 }}
                       className="flex items-start gap-2 font-noto-sc text-sm text-slate-400"
                     >
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neon-cyan/60 shrink-0" />
                       {result}
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>

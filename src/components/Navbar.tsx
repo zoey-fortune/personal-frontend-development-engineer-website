@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,22 +13,30 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const tickingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      if (tickingRef.current) return;
+      tickingRef.current = true;
 
-      const sections = navLinks.map((l) => l.href.replace('#', ''));
-      for (const section of sections.reverse()) {
-        const el = document.getElementById(section);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 120) {
-            setActiveSection(section);
-            break;
+      requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 50);
+
+        const sections = navLinks.map((l) => l.href.replace('#', ''));
+        for (const section of sections.reverse()) {
+          const el = document.getElementById(section);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 120) {
+              setActiveSection(section);
+              break;
+            }
           }
         }
-      }
+
+        tickingRef.current = false;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });

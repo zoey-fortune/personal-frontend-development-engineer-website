@@ -5,18 +5,18 @@ interface Particle {
   y: number;
   speedY: number;
   speedX: number;
-  opacity: number;
   char: string;
-  size: number;
-  hue: number;
+  font: string;
+  color: string;
 }
 
-const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン<>{}[]()/\\|&^%$#@!~`';
+const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ<>{}[]()/|&^%$#@';
 
 export default function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>(0);
+  const resizeRef = useRef<() => void>(() => {});
+  const scrollRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -25,71 +25,78 @@ export default function ParticleBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const particles: Particle[] = [];
+    let scrollY = 0;
+    let ticking = false;
+
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
+    resizeRef.current = resize;
 
-    resize();
-    window.addEventListener('resize', resize);
+    const handleScroll = () => {
+      scrollY = window.scrollY;
+    };
+    scrollRef.current = handleScroll;
 
-    const particleCount = Math.min(100, Math.floor(window.innerWidth / 15));
+    const particleCount = Math.min(50, Math.floor(window.innerWidth / 25));
 
     for (let i = 0; i < particleCount; i++) {
-      particlesRef.current.push({
+      const hue = Math.random() < 0.5 ? 185 + Math.random() * 20 : 270 + Math.random() * 30;
+      const size = 10 + Math.random() * 14;
+      particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        speedY: 0.3 + Math.random() * 0.8,
-        speedX: (Math.random() - 0.5) * 0.3,
-        opacity: 0.1 + Math.random() * 0.25,
+        speedY: 0.2 + Math.random() * 0.5,
+        speedX: (Math.random() - 0.5) * 0.2,
         char: chars[Math.floor(Math.random() * chars.length)],
-        size: 10 + Math.random() * 14,
-        hue: Math.random() < 0.5 ? 185 + Math.random() * 20 : 270 + Math.random() * 30,
+        font: `${size}px "JetBrains Mono", monospace`,
+        color: `hsl(${hue}, 90%, 65%)`,
       });
     }
 
-    const scrollY = { current: 0 };
+    let lastTime = 0;
+    const animate = (timestamp: number) => {
+      if (timestamp - lastTime < 32) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      lastTime = timestamp;
 
-    const handleScroll = () => {
-      scrollY.current = window.scrollY;
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const parallaxFactor = scrollY.current * 0.03;
+      const parallaxFactor = scrollY * 0.015;
 
-      for (const p of particlesRef.current) {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         p.y -= p.speedY;
-        p.x += p.speedX + Math.sin(p.y * 0.005) * 0.2;
+        p.x += p.speedX + Math.sin(p.y * 0.005) * 0.15;
 
-        if (p.y < -20) {
-          p.y = canvas.height + 20;
+        if (p.y < -30) {
+          p.y = canvas.height + 30;
           p.x = Math.random() * canvas.width;
         }
-        if (p.x < -20) p.x = canvas.width + 20;
-        if (p.x > canvas.width + 20) p.x = -20;
+        if (p.x < -30) p.x = canvas.width + 30;
+        if (p.x > canvas.width + 30) p.x = -30;
 
-        const drawY = p.y - parallaxFactor * p.speedY;
-        const drawX = p.x - parallaxFactor * p.speedX * 0.5;
-
-        ctx.save();
-        ctx.globalAlpha = p.opacity;
-        ctx.font = `${p.size}px "JetBrains Mono", monospace`;
-        ctx.fillStyle = `hsl(${p.hue}, 90%, 70%)`;
-        ctx.fillText(p.char, drawX, drawY);
-        ctx.restore();
+        ctx.globalAlpha = 0.08 + Math.random() * 0.04;
+        ctx.font = p.font;
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.char, p.x - parallaxFactor * p.speedX, p.y - parallaxFactor * p.speedY);
       }
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    resize();
+    window.addEventListener('resize', resizeRef.current);
+    window.addEventListener('scroll', scrollRef.current, { passive: true });
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', resizeRef.current);
+      window.removeEventListener('scroll', scrollRef.current);
       cancelAnimationFrame(animationRef.current);
     };
   }, []);
@@ -98,6 +105,7 @@ export default function ParticleBackground() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
+      style={{ willChange: 'transform' }}
       aria-hidden="true"
     />
   );

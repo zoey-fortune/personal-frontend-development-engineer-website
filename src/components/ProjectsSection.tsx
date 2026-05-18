@@ -1,7 +1,13 @@
 import { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionStyle,
+} from 'framer-motion';
 import { ExternalLink, Github } from 'lucide-react';
-import { projects, type Project } from '@/data/profile';
+import { type Project, projects } from '@/data/profile';
 import ProjectModal from '@/components/ProjectModal';
 
 function ProjectCard({
@@ -14,32 +20,31 @@ function ProjectCard({
   onClick: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [glowX, setGlowX] = useState(50);
-  const [glowY, setGlowY] = useState(50);
+
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+
+  const rotateX = useSpring(useTransform(mouseY, [0, 1], [8, -8]), {
+    stiffness: 300,
+    damping: 30,
+  });
+  const rotateY = useSpring(useTransform(mouseX, [0, 1], [-8, 8]), {
+    stiffness: 300,
+    damping: 30,
+  });
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateXVal = ((y - centerY) / centerY) * -8;
-    const rotateYVal = ((x - centerX) / centerX) * 8;
-
-    setRotateX(rotateXVal);
-    setRotateY(rotateYVal);
-    setGlowX((x / rect.width) * 100);
-    setGlowY((y / rect.height) * 100);
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    mouseX.set(x);
+    mouseY.set(y);
   };
 
   const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-    setGlowX(50);
-    setGlowY(50);
+    mouseX.set(0.5);
+    mouseY.set(0.5);
   };
 
   return (
@@ -54,34 +59,25 @@ function ProjectCard({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={onClick}
-        className="relative group cursor-pointer perspective-1000"
-        style={{ perspective: '1000px' }}
+        className="relative group cursor-pointer"
+        style={{ perspective: 1000 }}
       >
         <motion.div
-          animate={{ rotateX, rotateY }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative preserve-3d"
+          style={
+            {
+              rotateX,
+              rotateY,
+              transformStyle: 'preserve-3d',
+              willChange: 'transform',
+            } as MotionStyle
+          }
         >
-          <div
-            className="glass-card p-6 h-full flex flex-col transition-all duration-500 group-hover:border-neon-cyan/30 group-hover:bg-glass-hover"
-            style={{
-              boxShadow: `
-                0 0 30px rgba(0, 229, 255, ${Math.abs(rotateX) * 0.003}),
-                0 0 30px rgba(180, 77, 255, ${Math.abs(rotateY) * 0.003})
-              `,
-            }}
-          >
+          <div className="glass-card p-6 h-full flex flex-col transition-all duration-500 group-hover:border-neon-cyan/30 group-hover:bg-glass-hover">
             <div
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
-                background: `
-                  radial-gradient(
-                    circle at ${glowX}% ${glowY}%,
-                    rgba(0, 229, 255, 0.06) 0%,
-                    rgba(180, 77, 255, 0.03) 30%,
-                    transparent 60%
-                  )
-                `,
+                background:
+                  'radial-gradient(circle at center, rgba(0, 229, 255, 0.04), transparent 70%)',
               }}
             />
 
